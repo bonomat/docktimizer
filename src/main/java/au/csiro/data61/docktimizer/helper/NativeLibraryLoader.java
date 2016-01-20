@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.util.Enumeration;
+import java.util.Properties;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -23,8 +24,8 @@ public abstract class NativeLibraryLoader {
      * List of native libraries you put in src/main/resources
      */
     static final String[] NATIVE_LIB_FILENAMES = {
-            "natives/libcplex1260.so",
-            "natives/libcplex1260_x64.so",
+            "natives/libcplex1262.so",
+            "natives/libcplex1262_x64.so",
             "natives/liblpsolve55.so",
             "natives/liblpsolve55j.so",
             "natives/liblpsolve55j_x64.so",
@@ -32,28 +33,26 @@ public abstract class NativeLibraryLoader {
 
     static {
         try {
-            System.loadLibrary("cplex1260");
+            Properties prop = new Properties();
 
-            LOG.info("Loading from classpath successful");
-            useCPLEX = true;
-        } catch (UnsatisfiedLinkError error) {
-            LOG.info("try manual way");
+            String lp_solver = "lp_solver/lp_solver.properties";
+            prop.load(NativeLibraryLoader.class.getClassLoader().getResourceAsStream(lp_solver));
 
-            useCPLEX = extractNativeResources();
+            // check if property exists and if cplex should be loaded
+            String getenv = prop.getProperty("use.cplex");
+            if (getenv != null && "true".equals(getenv)) {
+
+                // List of native libraries you put in src/main/resources
+                String[] nativeLibFiles = prop.getProperty("lib.path").split(" ");
+
+                LOG.info("try loading the manual way");
+                useCPLEX = extractNativeResources(nativeLibFiles);
+            }
+
             if (!useCPLEX) {
-
-                //use this if you using maven assembly plugin with
-                //              <descriptorRef>
-                //                jar - with -dependencies
-                //              </descriptorRef>
-
-                LOG.info("Trying loading from jar instead");
-                useCPLEX = loadFromJarFiles("cplex1260"); //could work if CPLEX was packed in the maven build file
-                if (!useCPLEX) {
-                    //still not, try loading alternative solver
-                    loadLibraryFromJarFiles("lpsolve55j_x64");
-                    useCPLEX = false;
-                }
+                //try loading alternative solver
+                loadLibraryFromJarFiles("lpsolve55j_x64");
+                useCPLEX = false;
 
             }
         } catch (Exception e) {
@@ -61,11 +60,12 @@ public abstract class NativeLibraryLoader {
         }
     }
 
-    private static boolean extractNativeResources() {
+    private static boolean extractNativeResources(String[] nativeLibFiles) {
         boolean cplex = false;
-        for (String filename : NATIVE_LIB_FILENAMES) {
+        for (String filename : nativeLibFiles) {
             final InputStream in = NativeLibraryLoader.class.getClassLoader().getResourceAsStream(filename);
-            if (in != null) {
+            File lib = new File(NativeLibraryLoader.class.getClassLoader().getResource(filename).getFile());
+            if (lib.exists()) {
                 try {
                     LOG.info("Extracting " + filename);
                     File destination = File.createTempFile(filename, ".so");
@@ -358,7 +358,6 @@ public abstract class NativeLibraryLoader {
         }
 
     }
-
 
 
 }

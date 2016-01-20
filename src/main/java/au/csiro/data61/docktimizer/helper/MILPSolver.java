@@ -11,20 +11,24 @@ public class MILPSolver extends NativeLibraryLoader {
     private static final Logger LOG = (Logger) LoggerFactory.getLogger(MILPSolver.class);
 
     /**
-     *
      * solves the given problem and returns the result
      *
      * @param problem to be solved
      * @return the result of the problem
      */
-    public Result solveProblem(Problem problem)  {
+    public Result solveProblem(Problem problem) {
 
         SolverFactory factory;
         if (useCPLEX) {
-            LOG.info("USING CPLEX-------------------------------");
+            LOG.info("------------------------------- ---------- -------------------------------\n"
+                    + "------------------------------- USING CPLEX-------------------------------\n"
+                    + "------------------------------- ---------- -------------------------------");
+
             factory = new SolverFactoryCPLEX(); // use lp_solve
         } else {
-            LOG.info("USING LPSolve -------------------------------");
+            LOG.info("------------------------------- ------------- -------------------------------\n"
+                    + "------------------------------- USING LPSolve-------------------------------\n"
+                    + "------------------------------- ------------- -------------------------------");
             factory = new SolverFactoryLpSolve(); // use lp_solve
         }
         factory.setParameter(Solver.VERBOSE, 0);

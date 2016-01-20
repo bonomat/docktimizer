@@ -1,4 +1,5 @@
-<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>au.csiro.data61.docktimizer</groupId>
@@ -31,6 +32,7 @@
         <resources>
             <resource>
                 <directory>src/main/resources</directory>
+                <filtering>true</filtering>
             </resource>
             <resource>
                 <directory>src/main/resources/natives</directory>
@@ -51,6 +53,13 @@
             </testResource>
             <testResource>
                 <directory>src/main/resources/mysql-config</directory>
+            </testResource>
+            <testResource>
+                <directory>src/main/resources/natives</directory>
+            </testResource>
+            <testResource>
+                <directory>src/main/resources/lp_solver</directory>
+                <filtering>true</filtering>
             </testResource>
         </testResources>
         <plugins>
@@ -231,23 +240,6 @@
             <version>1.10.31</version>
         </dependency>
 
-        <!-- CPLEX
-        <dependency>
-            <groupId>cplex-so</groupId>
-            <artifactId>cplex-so</artifactId>
-            <version>1.0</version>
-            <scope>system</scope>
-            <type>so</type>
-            <systemPath>${basedir}/lib/natives/libcplex1260.so</systemPath>
-        </dependency>
-
-        <dependency>
-            <groupId>cplex-so</groupId>
-            <artifactId>cplex-jar</artifactId>
-            <version>1.0</version>
-        </dependency>
-        -->
-
         <dependency>
             <groupId>java-ilp-jar</groupId>
             <artifactId>java-ilp-jar</artifactId>
@@ -408,4 +400,53 @@
         </dependency>
 
     </dependencies>
+
+    <profiles>
+        <profile>
+            <id>default</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <use.cplex>false</use.cplex>
+            </properties>
+        </profile>
+
+        <profile>
+            <!-- Using CPLEX Solver-->
+            <id>cplex</id>
+            <activation>
+                <file>
+                    <exists>${project.basedir}/docktermizer-repo/cplex-so/cplex-so/1262/cplex-so-1262.so</exists>
+                </file>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <repositories>
+                <repository>
+                    <id>docktermizer-local-repo</id>
+                    <url>file://${basedir}/docktermizer-repo</url>
+                </repository>
+            </repositories>
+
+
+            <properties>
+                <use.cplex>true</use.cplex>
+            </properties>
+
+            <dependencies>
+                <dependency>
+                    <groupId>cplex-so</groupId>
+                    <artifactId>cplex-so</artifactId>
+                    <version>1262</version>
+                    <type>so</type>
+                </dependency>
+
+                <dependency>
+                    <groupId>cplex-so</groupId>
+                    <artifactId>cplex-jar</artifactId>
+                    <version>1262</version>
+                </dependency>
+            </dependencies>
+        </profile>
+    </profiles>
 </project>
