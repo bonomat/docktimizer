@@ -180,5 +180,5 @@ This package contains the main controllers and has the following classes
 
 
 [1] P. Hoenisch, I. Weber, S. Schulte, L. Zhu, and A. Fekete, “Four-fold Auto-scaling on a Contemporary Deployment
-Platform using Docker Containers (accepted for publication),” in 13th International Conference on Service Oriented
-Computing (ICSOC 2015), Goa, India, 2015, pp. NN-NN.
+Platform using Docker Containers,” in 13th International Conference on Service Oriented
+Computing (ICSOC 2015), Goa, India, 2015, pp. 316-323.
