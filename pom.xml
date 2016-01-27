@@ -322,7 +322,7 @@
             <groupId>com.spotify</groupId>
             <artifactId>docker-client</artifactId>
             <classifier>shaded</classifier>
-            <version>2.7.7</version>
+            <version>3.5.9</version>
         </dependency>
         <dependency>
             <groupId>com.sun.jersey</groupId>

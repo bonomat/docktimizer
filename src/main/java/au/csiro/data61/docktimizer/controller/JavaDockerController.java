@@ -136,7 +136,7 @@ public class JavaDockerController implements DockerController {
                     .image(dockerContainer.getDockerImage().getFullName())
                     .cpuShares(cpuShares)
                     .exposedPorts(String.valueOf(dockerContainer.getDockerImage().getInternPort()))
-                    .memory(memory)
+                    .memory(memory).hostConfig(hostConfig)
                     .env(String.format("WP_URL=\"%s:%s\"", virtualMachine.getIp(),
                             dockerContainer.getDockerImage().getExternPort()))
                     .build();
@@ -166,7 +166,7 @@ public class JavaDockerController implements DockerController {
 
             }
 
-            dockerClient.startContainer(id, hostConfig);
+            dockerClient.startContainer(id);
             dockerContainer.setContainerID(id);
 
 
