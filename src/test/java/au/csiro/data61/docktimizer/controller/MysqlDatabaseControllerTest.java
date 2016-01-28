@@ -7,10 +7,7 @@ import au.csiro.data61.docktimizer.models.VirtualMachine;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.SortedMap;
+import java.util.*;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -23,8 +20,6 @@ public class MysqlDatabaseControllerTest extends AbstractTest {
     public static void setUp() throws Exception {
         dbController = MysqlDatabaseController.getInstance();
         dbController.initializeAndUpdate(new Date().getTime());
-
-
     }
 
     @Test
@@ -38,10 +33,18 @@ public class MysqlDatabaseControllerTest extends AbstractTest {
         }
     }
 
-    @Test
+    @Test()
     public void testGetDockerMap() throws Exception {
         Map<DockerContainer, List<DockerContainer>> dockerMap = dbController.getDockerMap();
-        assertThat(dockerMap.size(), is(MysqlDatabaseController.D));
+        List<DockerContainer> realContainers = new ArrayList<>();
+        for (DockerContainer dockerContainer : dockerMap.keySet()) { //only take the "real" apps, have "app" in the name
+            for (DockerContainer container : dockerMap.get(dockerContainer)) {
+                if (container.getName().contains("app")) {
+                    realContainers.add(container);
+                }
+            }
+        }
+        assertThat(realContainers.size(), is(MysqlDatabaseController.D * MysqlDatabaseController.C));
         for (DockerContainer dockerContainer : dockerMap.keySet()) {
             List<DockerContainer> containerList = dockerMap.get(dockerContainer);
             assertThat(containerList.size(), is(MysqlDatabaseController.C));

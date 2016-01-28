@@ -10,10 +10,11 @@
         <class>au.csiro.data61.docktimizer.models.DockerConfiguration</class>
         <class>au.csiro.data61.docktimizer.models.DockerContainer</class>
         <class>au.csiro.data61.docktimizer.models.VirtualMachine</class>
+        <class>au.csiro.data61.docktimizer.models.DockerEnvironmentVariable</class>
 
         <properties>
             <property name="javax.persistence.jdbc.driver" value="org.mariadb.jdbc.Driver"/>
-            <property name="hibernate.hbm2ddl.auto" value="create"/>
+            <property name="hibernate.hbm2ddl.auto" value="create-drop"/>
             <property name="dialect" value="org.hibernate.dialect.MySQLDialect"/>
 
             <property name="show_sql" value="false"/>

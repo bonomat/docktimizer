@@ -18,7 +18,7 @@ public class DockerContainer {
     @Enumerated(EnumType.STRING)
     private DockerConfiguration containerConfiguration;
 
-    @ManyToOne
+    @ManyToOne(cascade = CascadeType.PERSIST)
     private DockerImage dockerImage;
 
     @ManyToMany(fetch = FetchType.LAZY)
@@ -30,6 +30,9 @@ public class DockerContainer {
     private long deployTime;
     private long deployCost = 3;
     private String containerID;
+
+    @ManyToOne()
+    private DockerContainer sibling;
 
     public DockerContainer() {
     }
@@ -188,4 +191,13 @@ public class DockerContainer {
         virtualMachines.add(virtualMachine);
 
     }
+
+    public DockerContainer getSibling() {
+        return sibling;
+    }
+
+    public void setSibling(DockerContainer sibling) {
+        this.sibling = sibling;
+    }
+
 }

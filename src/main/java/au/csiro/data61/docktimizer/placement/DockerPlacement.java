@@ -3,9 +3,7 @@ package au.csiro.data61.docktimizer.placement;
 import au.csiro.data61.docktimizer.controller.ControllerHandler;
 import au.csiro.data61.docktimizer.controller.MysqlDatabaseController;
 import au.csiro.data61.docktimizer.helper.MILPSolver;
-import au.csiro.data61.docktimizer.models.DockerContainer;
-import au.csiro.data61.docktimizer.models.VMType;
-import au.csiro.data61.docktimizer.models.VirtualMachine;
+import au.csiro.data61.docktimizer.models.*;
 import net.sf.javailp.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -100,6 +98,10 @@ public class DockerPlacement {
         addConstraint_15(problem);
         addConstraint_16(problem);
         addConstraint_17(problem);
+
+        //TOIT Extension
+        addConstrainOneBoth(problem);
+
         switch (MysqlDatabaseController.BASELINE_TYPE) {
             case MysqlDatabaseController.ONE_ALL:
                 addConstrainOneForAll(problem);
@@ -144,6 +146,33 @@ public class DockerPlacement {
                     problem.add(linear2, "=", 0);
                 }
                 problem.add(linear, Operator.LE, 1);
+            }
+        }
+    }
+
+
+    private void addConstrainOneBoth(Problem problem) {
+        for (VMType vmType : vmMap.keySet()) {
+            for (VirtualMachine vm : vmMap.get(vmType)) {
+                Linear linear = new Linear();
+                for (DockerContainer dockerContainerType : dockerMap.keySet()) {
+
+                    DockerContainer siblingContainerType = dockerContainerType.getSibling();
+                    if (siblingContainerType != null) {
+                        for (DockerContainer dockerContainer : dockerMap.get(dockerContainerType)) {
+                            String decisionVariableX = getDecisionVariableX(dockerContainer, vm);
+                            linear.add(1, decisionVariableX);
+
+                        }
+                        String decisionVariableX = getDecisionVariableX(siblingContainerType, vm);
+                        linear.add(-1, decisionVariableX);
+
+                        problem.add(linear, Operator.EQ, 0);
+
+                    }
+                }
+
+
             }
         }
     }

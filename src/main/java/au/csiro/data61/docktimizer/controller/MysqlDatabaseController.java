@@ -5,6 +5,7 @@ import au.csiro.data61.docktimizer.hibernate.EntityManagerHelper;
 import au.csiro.data61.docktimizer.interfaces.DatabaseController;
 import au.csiro.data61.docktimizer.models.*;
 import au.csiro.data61.docktimizer.placement.DockerPlacementService;
+import com.amazonaws.services.opsworks.model.EnvironmentVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -93,7 +94,13 @@ public class MysqlDatabaseController implements DatabaseController {
         } else {
             this.imageList = tmpImageList;
         }
-        LOG.info("Found images " + imageList.size());
+        StringBuilder images = new StringBuilder("[");
+        for (DockerImage dockerImage : imageList) {
+            images.append(dockerImage.getAppId()).append(",");
+        }
+
+        images.append("]");
+        LOG.info("Found images " + imageList.size() + " " + images.toString());
 
 
         //setup DockerContainers
@@ -102,7 +109,18 @@ public class MysqlDatabaseController implements DatabaseController {
         if (containerList.isEmpty()) {
             initializeDockerContainer();
         }
-        LOG.info("Found docker container types " + dockerMap.keySet().size());
+        Set<DockerContainer> dockerContainers = dockerMap.keySet();
+        StringBuilder containers = new StringBuilder("[");
+        for (DockerContainer container : dockerContainers) {
+            List<DockerContainer> dockerContainers1 = dockerMap.get(container);
+            for (DockerContainer dockerContainer : dockerContainers1) {
+                containers.append(dockerContainer.getName()).append(",");
+            }
+        }
+        containers.append("]");
+
+
+        LOG.info("Found docker container types " + dockerContainers.size() + " " + containers.toString());
 
 
         LOG.info("Loading planned invocations ...");
@@ -174,24 +192,40 @@ public class MysqlDatabaseController implements DatabaseController {
     private void initializeDockerImages() {
         for (int c = 0; c < D; c++) {
             DockerImage dockerImage = parseByAppId("app" + c);
-            entityManager.getEntityManager().persist(parseByAppId("app" + c));
+//            entityManager.getEntityManager().persist(dockerImage);
             imageList.add(dockerImage);
         }
     }
 
     public static DockerImage parseByImageName(String imageFullName) {
         if (imageFullName.contains("bonomat")) {
-            return new DockerImage("app" + 0, "bonomat", "nodejs-hello-world", 8090, 3000);
+            DockerImage bonomat = new DockerImage("app" + 0, "bonomat/nodejs-hello-world", 8080, 3000, null);
+            return bonomat;
         }
         if (imageFullName.contains("kaihofstetter")) {
-            return new DockerImage("app" + 1, "gjong", "apache-joomla", 8091, 80);
+            DockerImage kaihofstetter = new DockerImage("app" + 1, "gjong/apache-joomla", 8081, 80, null);
+            return kaihofstetter;
 
         }
+        if (imageFullName.contains("wordpress")) {
+            DockerImage wordpress = new DockerImage("app" + 2, "wordpress:4.4", 8082, 80, null);
+            wordpress.setSibl(parseByImageName("mysql"));
+            return wordpress;
+        }
+
         if (imageFullName.contains("gjong")) {
-            return new DockerImage("app" + 2, "bonomat", "zero-to-wordpress-sqlite", 8082, 80);
+            DockerImage gjong = new DockerImage("app" + 3, "bonomat/zero-to-wordpress-sqlite", 8083, 80, null);
+            return gjong;
         }
         if (imageFullName.contains("xhoussemx")) {
-            return new DockerImage("app" + 3, "bonomat", "nodejs-hello-world", 8092, 3000);
+            DockerImage xhoussemx = new DockerImage("app" + 4, "bonomat/nodejs-hello-world", 8084, 3000, null);
+            return xhoussemx;
+        }
+
+        if (imageFullName.contains("mysql")) {
+            DockerImage mysql = new DockerImage("mysql", "mysql/mysql-server:5.5", 3306, 3306,
+                    new DockerEnvironmentVariable("MYSQL_ROOT_PASSWORD=password"));
+            return mysql;
         }
         return null;
     }
@@ -205,17 +239,18 @@ public class MysqlDatabaseController implements DatabaseController {
             return parseByImageName("kaihofstetter");
         }
         if (appId.contains("app2")) {
-            return parseByImageName("gjong");
+            return parseByImageName("wordpress");
         }
         if (appId.contains("app3")) {
+            return parseByImageName("gjong");
+        }
+        if (appId.contains("app4")) {
             return parseByImageName("xhoussemx");
         }
         return parseByImageName("bonomat");
     }
 
     private void initializeDockerContainer() {
-
-
         for (DockerImage dockerImage : imageList) {
             List<DockerContainer> dockerList = new ArrayList<>();
             for (int j = 0; j < C; j++) {
@@ -231,17 +266,34 @@ public class MysqlDatabaseController implements DatabaseController {
                         configuration = DockerConfiguration.QUAD_CORE;
                         break;
                     case 3:
-                        configuration = DockerConfiguration.HEXA_CORE;
+                        configuration = DockerConfiguration.OCTA_CORE;
                         break;
 
                 }
 
                 DockerContainer container = new DockerContainer(dockerImage, configuration);
+
+                if (dockerImage.getSibl() != null) {
+                    DockerContainer siblingSettings = getSiblingSettings(dockerImage.getSibl());
+                    container.setSibling(siblingSettings);
+                    siblingSettings.setIsSibling(true);
+                    entityManager.getEntityManager().persist(siblingSettings);
+                }
+
                 entityManager.getEntityManager().persist(container);
                 dockerList.add(container);
             }
             dockerMap.put(dockerList.get(0), dockerList);
         }
+    }
+
+    private DockerContainer getSiblingSettings(DockerImage sibling) {
+        DockerContainer container = new DockerContainer();
+
+        if (sibling.getAppId().contains("mysql")) {
+            container = new DockerContainer(sibling, DockerConfiguration.MICRO_CORE);
+        }
+        return container;
     }
 
     private void initializeVirtualMachines() {
@@ -315,7 +367,7 @@ public class MysqlDatabaseController implements DatabaseController {
 
     @Override
     public DockerContainer getDocker(String appID) {
-        DockerContainer dockerContainer = (DockerContainer) entityManager.getEntityManager().createQuery("" +
+        DockerContainer dockerContainer = (DockerContainer) entityManager.getEntityManager().createQuery(
                 "FROM DockerContainer AS d WHERE d.dockerImage.appId=:appID")
                 .setParameter("appID", appID).getSingleResult();
         return dockerContainer;

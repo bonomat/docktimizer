@@ -1,9 +1,10 @@
 package au.csiro.data61.docktimizer.models;
 
-import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.Table;
+import javax.persistence.*;
 import javax.xml.bind.annotation.XmlRootElement;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  */
@@ -12,37 +13,36 @@ import javax.xml.bind.annotation.XmlRootElement;
 @Table(name = "DockerImage")
 public class DockerImage {
 
+    @Transient
+    private DockerImage sibl;
     public DockerImage() {
     }
 
-    public DockerImage(String appId, String repoName, String imageName, Integer externPort, Integer internPort) {
+    public DockerImage(String appId, String name, Integer externPort, Integer internPort, DockerEnvironmentVariable... dockerEnvironmentVariables) {
         this.appId = appId;
-        this.repoName = repoName;
-        this.imageName = imageName;
+        this.name = name;
         this.internPort = internPort;
         this.externPort = externPort;
+        if (dockerEnvironmentVariables != null) {
+            this.dockerEnvironmentVariables = Arrays.asList(dockerEnvironmentVariables);
+        } else {
+            this.dockerEnvironmentVariables = new ArrayList<>();
+        }
     }
 
     @Id
     private String appId;
 
-    private String imageName;
-    private String repoName;
+    private String name;
+
     private Integer internPort;
     private Integer externPort;
-
-
-    public String getImageName() {
-        return imageName;
-    }
-
-    public String getRepoName() {
-        return repoName;
-    }
-
     public String getFullName() {
-        return String.format("%s/%s", repoName, imageName);
+        return name;
     }
+
+    @OneToMany(cascade = CascadeType.PERSIST)
+    private List<DockerEnvironmentVariable> dockerEnvironmentVariables;
 
     public Integer getInternPort() {
         return internPort;
@@ -68,13 +68,27 @@ public class DockerImage {
         this.appId = appId;
     }
 
-    public void setImageName(String imageName) {
-        this.imageName = imageName;
+    public void setSibl(DockerImage sibl) {
+        this.sibl = sibl;
     }
 
-    public void setRepoName(String repoName) {
-        this.repoName = repoName;
+    public DockerImage getSibl() {
+        return sibl;
     }
 
+    public String getName() {
+        return name;
+    }
 
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public List<DockerEnvironmentVariable> getDockerEnvironmentVariables() {
+        return dockerEnvironmentVariables;
+    }
+
+    public void setDockerEnvironmentVariables(List<DockerEnvironmentVariable> dockerEnvironmentVariables) {
+        this.dockerEnvironmentVariables = dockerEnvironmentVariables;
+    }
 }

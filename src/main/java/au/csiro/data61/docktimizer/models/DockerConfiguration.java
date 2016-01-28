@@ -8,7 +8,7 @@ public enum DockerConfiguration {
     SINGLE_CORE(1, 100, 30),
     DUAL_CORE(2, 2 * 100, 30),
     QUAD_CORE(4, 4 * 100, 30),
-    HEXA_CORE(8, 8 * 100, 30);
+    OCTA_CORE(8, 8 * 100, 30);
 
     public final String id;
     public final double cores; //amount of needed VCores

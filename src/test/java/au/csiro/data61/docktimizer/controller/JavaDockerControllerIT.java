@@ -17,7 +17,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.notNullValue;
 
-//@Ignore("This test should only be run manually as it uses cloud resources and may produce cost")
+@Ignore("This test should only be run manually as it uses cloud resources and may produce cost")
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class JavaDockerControllerIT extends AbstractTest {
 

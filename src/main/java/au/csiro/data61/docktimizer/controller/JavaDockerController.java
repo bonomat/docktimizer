@@ -6,10 +6,7 @@ import au.csiro.data61.docktimizer.exception.CouldNotStopDockerException;
 import au.csiro.data61.docktimizer.exception.CouldResizeDockerException;
 import au.csiro.data61.docktimizer.interfaces.CloudController;
 import au.csiro.data61.docktimizer.interfaces.DockerController;
-import au.csiro.data61.docktimizer.models.DockerConfiguration;
-import au.csiro.data61.docktimizer.models.DockerContainer;
-import au.csiro.data61.docktimizer.models.DockerImage;
-import au.csiro.data61.docktimizer.models.VirtualMachine;
+import au.csiro.data61.docktimizer.models.*;
 import com.spotify.docker.client.*;
 import com.spotify.docker.client.messages.*;
 import org.slf4j.Logger;
@@ -123,8 +120,18 @@ public class JavaDockerController implements DockerController {
             hostPorts.add(PortBinding.of("0.0.0.0", externPort));
             portBindings.put(internPort, hostPorts);
 
-            final HostConfig hostConfig = HostConfig.builder().
-                    portBindings(portBindings).build();
+            HostConfig hostConfig = null;
+            //if a container has a sibling, it needs to be started first
+            if (dockerContainer.getDockerImage().getSibl() != null) {
+                DockerContainer sibling = dockerContainer.getSibling();
+                DockerContainer tmp = startDocker(virtualMachine, sibling);
+                hostConfig = HostConfig.builder().portBindings(portBindings)
+                        .links(String.format("%s:%s", getContainerName(tmp), getContainerName(tmp)))
+                        .build();
+            } else {
+                hostConfig = HostConfig.builder().portBindings(portBindings).build();
+            }
+
 
             double vmCores = virtualMachine.getVmType().cores;
             double containerCores = dockerContainer.getContainerConfiguration().cores;
@@ -132,13 +139,23 @@ public class JavaDockerController implements DockerController {
 
             long memory = (long) dockerContainer.getContainerConfiguration().ram * 1024 * 1024;
 
+            String wp_address = String.format("WP_URL=\"%s:%s\"", virtualMachine.getIp(),  dockerContainer.getDockerImage().getExternPort());
+
+            List<DockerEnvironmentVariable> dockerEnvironmentVariables = dockerContainer.getDockerImage().getDockerEnvironmentVariables();
+            String[] vars = new String[dockerEnvironmentVariables.size()+1];
+            vars[dockerEnvironmentVariables.size()] = wp_address;
+
+            for (int i = 0; i < dockerEnvironmentVariables.size(); i++) {
+                DockerEnvironmentVariable dockerEnvironmentVariable = dockerEnvironmentVariables.get(i);
+                vars[i] = dockerEnvironmentVariable.getFieldAndValue();
+            }
+
             final ContainerConfig config = ContainerConfig.builder()
                     .image(dockerContainer.getDockerImage().getFullName())
                     .cpuShares(cpuShares)
                     .exposedPorts(String.valueOf(dockerContainer.getDockerImage().getInternPort()))
                     .memory(memory).hostConfig(hostConfig)
-                    .env(String.format("WP_URL=\"%s:%s\"", virtualMachine.getIp(),
-                            dockerContainer.getDockerImage().getExternPort()))
+                    .env(vars)
                     .build();
 
             String id;
@@ -165,7 +182,6 @@ public class JavaDockerController implements DockerController {
                 }
 
             }
-
             dockerClient.startContainer(id);
             dockerContainer.setContainerID(id);
 

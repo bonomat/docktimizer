@@ -22,7 +22,7 @@ public class ControllerHandler {
 
     private static final Logger LOG = (Logger) LoggerFactory.getLogger(ControllerHandler.class);
     private static final long VM_STARTUP_TIMEOUT = 6;
-    public static final boolean OPENSTACK = false; // enable to use openstack
+    public static final boolean OPENSTACK = true; // enable to use openstack
     public static boolean SETUP = true;
 
     public static boolean DEBUG_MODE = false;
