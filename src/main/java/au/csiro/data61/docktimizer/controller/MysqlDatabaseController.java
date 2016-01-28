@@ -276,7 +276,6 @@ public class MysqlDatabaseController implements DatabaseController {
                 if (dockerImage.getSibl() != null) {
                     DockerContainer siblingSettings = getSiblingSettings(dockerImage.getSibl());
                     container.setSibling(siblingSettings);
-                    siblingSettings.setIsSibling(true);
                     entityManager.getEntityManager().persist(siblingSettings);
                 }
 
