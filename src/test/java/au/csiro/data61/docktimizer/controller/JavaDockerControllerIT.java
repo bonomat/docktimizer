@@ -4,11 +4,11 @@ import au.csiro.data61.docktimizer.AbstractTest;
 import au.csiro.data61.docktimizer.exception.*;
 import au.csiro.data61.docktimizer.models.DockerConfiguration;
 import au.csiro.data61.docktimizer.models.DockerContainer;
+import au.csiro.data61.docktimizer.models.DockerImage;
 import com.spotify.docker.client.messages.ContainerInfo;
 import org.junit.*;
 import org.junit.runners.MethodSorters;
 
-import javax.naming.ldap.Control;
 import java.util.List;
 
 import static junit.framework.TestCase.assertTrue;
@@ -17,9 +17,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.notNullValue;
 
-@Ignore("This test should only be run manually as it uses cloud resources and may produce cost")
+//@Ignore("This test should only be run manually as it uses cloud resources and may produce cost")
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
-public class JavaDockerControllerITest extends AbstractTest {
+public class JavaDockerControllerIT extends AbstractTest {
 
     private static JavaDockerController javaDockerController;
 
@@ -53,6 +53,22 @@ public class JavaDockerControllerITest extends AbstractTest {
         validDockerContainer = javaDockerController.startDocker(validVirtualMachine, validDockerContainer);
         assertThat(validDockerContainer, is(notNullValue()));
     }
+    @Test
+    public void t02_testMysqlContainer() throws Exception {
+        DockerContainer mysqlContainer = new DockerContainer(MysqlDatabaseController.parseByImageName("mysql"), DockerConfiguration.MICRO_CORE);
+        validDockerContainer = javaDockerController.startDocker(validVirtualMachine, mysqlContainer);
+        assertThat(validDockerContainer, is(notNullValue()));
+    }
+
+    @Test
+    public void t02_testStartDockerWithSibling() throws Exception {
+        DockerImage gjong = MysqlDatabaseController.parseByImageName("wordpress");
+        DockerContainer container = new DockerContainer(gjong, DockerConfiguration.SINGLE_CORE);
+        container.setSibling(new DockerContainer(gjong.getSibl(), DockerConfiguration.MICRO_CORE));
+
+        validDockerContainer = javaDockerController.startDocker(validVirtualMachine, container);
+        assertThat(validDockerContainer, is(notNullValue()));
+    }
 
     @Test(expected = CouldNotStartDockerException.class)
     public void t03_testStartDocker_InvalidDockerImage() throws Exception {
@@ -65,7 +81,6 @@ public class JavaDockerControllerITest extends AbstractTest {
         assertThat(dockerInfo, is(notNullValue()));
     }
 
-    @Ignore
     @Test
     public void t05_resizeDocker() throws CouldNotStartDockerException, CouldResizeDockerException {
 
