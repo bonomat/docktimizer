@@ -81,8 +81,8 @@ public class DockerPlacementTest {
         DockerPlacementRESTApi dockerPlacementRESTApi = new DockerPlacementRESTApi();
         PlannedInvocations invocations = new PlannedInvocations();
         List<PlannedInvocation> ivocationList = new ArrayList<>();
-        PlannedInvocation invocation = new PlannedInvocation("app2", 10, tau_t);
-        ivocationList.add(invocation);
+        ivocationList.add(new PlannedInvocation("app2", 60, tau_t));
+        ivocationList.add(new PlannedInvocation("app1", 10, tau_t));
         invocations.setPlannedInvocations(ivocationList);
         dockerPlacementRESTApi.add(invocations);
 
@@ -99,6 +99,7 @@ public class DockerPlacementTest {
         Map<String, Number> xValues = new HashMap<>();
         Map<String, Number> yValues = new HashMap<>();
         Map<String, Number> betaValues = new HashMap<>();
+        Map<String, Number> oValues = new HashMap<>();
 
         StringBuilder invocationOutput = new StringBuilder("");
         for (DockerContainer dockerContainerType : dockerMap.keySet()) {
@@ -121,6 +122,8 @@ public class DockerPlacementTest {
                     }
                 }
             }
+            String helperVariableO = dockerPlacement.getHelperVariableO(dockerContainerType);
+            oValues.put(helperVariableO, result.get(helperVariableO));
         }
 
 
@@ -129,6 +132,7 @@ public class DockerPlacementTest {
         StringBuilder x1Values = new StringBuilder("");
         StringBuilder beta1Values = new StringBuilder("");
         StringBuilder x0Values = new StringBuilder("");
+        StringBuilder o1Values = new StringBuilder("");
         for (String variableName : yValues.keySet()) {
             Number value = yValues.get(variableName);
             if (value.intValue() == 0) {
@@ -154,6 +158,11 @@ public class DockerPlacementTest {
             }
         }
 
+        for (String variableName : oValues.keySet()) {
+            Number value = oValues.get(variableName);
+            o1Values.append(variableName).append(";").append(value).append("\n");
+        }
+
 
         System.out.println(""
                 + "\nplanned invocations: \n" + invocationOutput.toString()
@@ -161,6 +170,7 @@ public class DockerPlacementTest {
                 + "\nobjective: " + objective
                 + "\nY - 1 - values\n" + y1Values.toString()
                 + "\nX - 1 - values\n" + x1Values.toString()
+                + "\nO - 1 - values\n" + o1Values.toString()
         );
 
     }

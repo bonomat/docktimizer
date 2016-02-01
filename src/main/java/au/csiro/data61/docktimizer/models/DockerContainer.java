@@ -80,7 +80,7 @@ public class DockerContainer {
             case "app1":
                 return (int) (perCore * 1.0);
             case "app2":
-                return (int) (perCore * 0.6);
+                return (int) (perCore * 0.8);
             case "app3":
                 return (int) (perCore * 1.0);
             default:

@@ -5,13 +5,16 @@ import au.csiro.data61.docktimizer.models.DockerContainer;
 import au.csiro.data61.docktimizer.models.VMType;
 import au.csiro.data61.docktimizer.models.VirtualMachine;
 import org.junit.BeforeClass;
+import org.junit.FixMethodOrder;
 import org.junit.Test;
+import org.junit.runners.MethodSorters;
 
 import java.util.*;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
+@FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class MysqlDatabaseControllerTest extends AbstractTest {
 
     private static MysqlDatabaseController dbController;
@@ -23,7 +26,7 @@ public class MysqlDatabaseControllerTest extends AbstractTest {
     }
 
     @Test
-    public void testGetVmMap() throws Exception {
+    public void test01_testGetVmMap() throws Exception {
         SortedMap<VMType, List<VirtualMachine>> vmMap = dbController.getVmMap(false);
         assertThat(vmMap.size(), is(MysqlDatabaseController.V));
 
@@ -34,7 +37,7 @@ public class MysqlDatabaseControllerTest extends AbstractTest {
     }
 
     @Test()
-    public void testGetDockerMap() throws Exception {
+    public void test02_testGetDockerMap() throws Exception {
         Map<DockerContainer, List<DockerContainer>> dockerMap = dbController.getDockerMap();
         List<DockerContainer> realContainers = new ArrayList<>();
         for (DockerContainer dockerContainer : dockerMap.keySet()) { //only take the "real" apps, have "app" in the name
@@ -47,12 +50,14 @@ public class MysqlDatabaseControllerTest extends AbstractTest {
         assertThat(realContainers.size(), is(MysqlDatabaseController.D * MysqlDatabaseController.C));
         for (DockerContainer dockerContainer : dockerMap.keySet()) {
             List<DockerContainer> containerList = dockerMap.get(dockerContainer);
-            assertThat(containerList.size(), is(MysqlDatabaseController.C));
+            if (dockerContainer.getName().contains("app")) {
+                assertThat(containerList.size(), is(MysqlDatabaseController.C));
+            }
         }
     }
 
     @Test
-    public void testGetVmMap_AndUpdate() throws Exception {
+    public void test03_testGetVmMap_AndUpdate() throws Exception {
         SortedMap<VMType, List<VirtualMachine>> vmMap = dbController.getVmMap(false);
         assertThat(vmMap.size(), is(MysqlDatabaseController.V));
 
@@ -89,7 +94,7 @@ public class MysqlDatabaseControllerTest extends AbstractTest {
     }
 
     @Test
-    public void getDockerByAppId() {
+    public void test04_getDockerByAppId() {
         DockerContainer docker = dbController.getDocker(validDockerContainer.getAppID());
         assertThat(docker == null, is(false));
     }

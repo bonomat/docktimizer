@@ -85,6 +85,7 @@ public class DockerPlacement {
         addConstraint_2(problem);
         addConstraint_3(problem);
         addConstraint_4(problem);
+        addConstraint_4_2(problem);
         addConstraint_5(problem);
         addConstraint_6(problem);
         addConstraint_7(problem);
@@ -98,11 +99,12 @@ public class DockerPlacement {
         addConstraint_15(problem);
         addConstraint_16(problem);
         addConstraint_17(problem);
+        addConstraint_18(problem);
 
         //TOIT Extension
         addConstrainOneBoth(problem);
 
-        switch (MysqlDatabaseController.BASELINE_TYPE) {
+        /*switch (MysqlDatabaseController.BASELINE_TYPE) {
             case MysqlDatabaseController.ONE_ALL:
                 addConstrainOneForAll(problem);
                 break;
@@ -111,7 +113,7 @@ public class DockerPlacement {
                 break;
             default:
                 break;
-        }
+        }*/ //TODO think about the baseline, how to restrict base line to use certain VMs
         return problem;
     }
 
@@ -156,23 +158,20 @@ public class DockerPlacement {
             for (VirtualMachine vm : vmMap.get(vmType)) {
                 Linear linear = new Linear();
                 for (DockerContainer dockerContainerType : dockerMap.keySet()) {
-
-                    DockerContainer siblingContainerType = dockerContainerType.getSibling();
-                    if (siblingContainerType != null) {
+                    DockerContainer sibling = dockerContainerType.getSibling();
+                    if (sibling != null) {
                         for (DockerContainer dockerContainer : dockerMap.get(dockerContainerType)) {
                             String decisionVariableX = getDecisionVariableX(dockerContainer, vm);
                             linear.add(1, decisionVariableX);
-
                         }
-                        String decisionVariableX = getDecisionVariableX(siblingContainerType, vm);
-                        linear.add(-1, decisionVariableX);
+
+                        String siblingDecisionVariable = getDecisionVariableX(sibling, vm);
+                        linear.add(-1, siblingDecisionVariable);
 
                         problem.add(linear, Operator.EQ, 0);
-
                     }
+
                 }
-
-
             }
         }
     }
@@ -238,6 +237,13 @@ public class DockerPlacement {
                 }
 
             }
+        }
+
+        //term 5
+        for (DockerContainer dockerContainerType : dockerMap.keySet()) {
+            String o_d = getHelperVariableO(dockerContainerType);
+            double c_o = 1;
+            linear.add(c_o, o_d);
         }
 
         problem.setObjective(linear, OptType.MIN);
@@ -306,7 +312,29 @@ public class DockerPlacement {
                     }
                 }
             }
-            problem.add(linear, ">=", invocationMap.get(dockerContainerType));
+            linear.add(-1, getHelperVariableI(dockerContainerType));
+            linear.add(1, getHelperVariableO(dockerContainerType));
+            problem.add(linear, ">=", 0);
+        }
+    }
+
+    /**
+     * @param problem adds the subconstraint to compute the max allowed overload per container type
+     */
+    private void addConstraint_4_2(Problem problem) {
+        for (DockerContainer dockerContainerType : dockerMap.keySet()) {
+            Linear linear = new Linear();
+            for (DockerContainer dockerContainer : dockerMap.get(dockerContainerType)) {
+                for (VMType vmType : vmMap.keySet()) {
+                    for (VirtualMachine vm : vmMap.get(vmType)) {
+                        String decisionVariableX = getDecisionVariableX(dockerContainer, vm);
+                        double tenPercentOfPossibleInvocations = dockerContainer.getAmountOfPossibleInvocations() * 0.1;
+                        linear.add(tenPercentOfPossibleInvocations, decisionVariableX);
+                    }
+                }
+            }
+            linear.add(-1, getHelperVariableO(dockerContainerType));
+            problem.add(linear, "=", 0);
         }
     }
 
@@ -533,6 +561,22 @@ public class DockerPlacement {
         //this is just a placeholder
     }
 
+    /**
+     * defines the limits for variable O
+     *
+     * @param problem to add the variable
+     */
+
+    private void addConstraint_18(Problem problem) {
+        for (DockerContainer dockerContainerType : dockerMap.keySet()) {
+            String variableX = getHelperVariableO(dockerContainerType);
+            Linear linear = new Linear();
+            linear.add(1, variableX);
+            problem.add(linear, ">=", 0);
+            problem.setVarType(variableX, VarType.REAL);
+        }
+    }
+
 
     /**
      * *************** Variable Methods *************************
@@ -605,6 +649,14 @@ public class DockerPlacement {
      */
     public String getHelperVariableBeta(VirtualMachine vm) {
         return "beta_(" + vm.getName() + ",t)";
+    }
+
+    /**
+     * @param dockerContainer to define the variable
+     * @return helper variable to compute the max overload per container
+     */
+    protected String getHelperVariableO(DockerContainer dockerContainer) {
+        return "o_" + dockerContainer.getAppID();
     }
 
     public void setControllerHandler(ControllerHandler controllerHandler) {

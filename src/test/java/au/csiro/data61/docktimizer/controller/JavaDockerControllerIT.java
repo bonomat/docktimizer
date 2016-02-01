@@ -55,14 +55,14 @@ public class JavaDockerControllerIT extends AbstractTest {
     }
     @Test
     public void t02_testMysqlContainer() throws Exception {
-        DockerContainer mysqlContainer = new DockerContainer(MysqlDatabaseController.parseByImageName("mysql"), DockerConfiguration.MICRO_CORE);
+        DockerContainer mysqlContainer = new DockerContainer(MysqlDatabaseController.parseByImageName("mysql", "mysql"), DockerConfiguration.MICRO_CORE);
         validDockerContainer = javaDockerController.startDocker(validVirtualMachine, mysqlContainer);
         assertThat(validDockerContainer, is(notNullValue()));
     }
 
     @Test
     public void t02_testStartDockerWithSibling() throws Exception {
-        DockerImage gjong = MysqlDatabaseController.parseByImageName("wordpress");
+        DockerImage gjong = MysqlDatabaseController.parseByImageName("app2", "wordpress");
         DockerContainer container = new DockerContainer(gjong, DockerConfiguration.SINGLE_CORE);
         container.setSibling(new DockerContainer(gjong.getSibl(), DockerConfiguration.MICRO_CORE));
 

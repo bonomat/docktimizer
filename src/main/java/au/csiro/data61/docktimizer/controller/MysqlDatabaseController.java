@@ -5,7 +5,6 @@ import au.csiro.data61.docktimizer.hibernate.EntityManagerHelper;
 import au.csiro.data61.docktimizer.interfaces.DatabaseController;
 import au.csiro.data61.docktimizer.models.*;
 import au.csiro.data61.docktimizer.placement.DockerPlacementService;
-import com.amazonaws.services.opsworks.model.EnvironmentVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,14 +22,15 @@ public class MysqlDatabaseController implements DatabaseController {
     public static final String ONE_EACH = "1EACH";
 
     //Chose which evaluation you are runnging...
-    //    public static String BASELINE_TYPE = "DEFAULT";
-    //    public static String BASELINE_TYPE = "1EACH";
-    public static String BASELINE_TYPE = ONE_EACH;
+        public static String BASELINE_TYPE = DEFAULT;
+//        public static String BASELINE_TYPE = ONE_EACH;
+//    public static String BASELINE_TYPE = ONE_ALL;
 
     protected static Integer V = 3; // type = cores
     protected static Integer K = 4; // how many of each core
-    protected static Integer D = 3; // how many docker types
-    protected static Integer C = 4; // different configurations of each docker type
+
+    protected static Integer D; // how many docker types
+    protected static Integer C; // different configurations of each docker type
     private EntityManagerHelper entityManager;
 
     private SortedMap<VMType, List<VirtualMachine>> vmMap;
@@ -44,21 +44,21 @@ public class MysqlDatabaseController implements DatabaseController {
         switch (BASELINE_TYPE) {
             case ONE_EACH:
                 V = 3;
-                K = 12;
+                K = 3;
                 D = 3;
-                C = 4;
+                C = 3;
                 return;
             case ONE_ALL:
                 V = 3;
                 K = 4;
                 D = 3;
-                C = 4;
+                C = 3;
                 return;
             default:
                 V = 3;
                 K = 4;
                 D = 3;
-                C = 4;
+                C = 3;
                 break;
         }
     }
@@ -87,10 +87,10 @@ public class MysqlDatabaseController implements DatabaseController {
         if (virtualMachineList.isEmpty()) {
             initializeVirtualMachines();
         }
-        LOG.info("Loading images...");
+        LOG.info("Loading images... and Docker container types");
         List<DockerImage> tmpImageList = entityManager.getEntityManager().createQuery("From DockerImage ").getResultList();
         if (tmpImageList.isEmpty()) {
-            initializeDockerImages();
+            initializeDockerImagesAndContainers();
         } else {
             this.imageList = tmpImageList;
         }
@@ -102,13 +102,9 @@ public class MysqlDatabaseController implements DatabaseController {
         images.append("]");
         LOG.info("Found images " + imageList.size() + " " + images.toString());
 
-
         //setup DockerContainers
         LOG.info("Loading docker container types...");
-        List<DockerContainer> containerList = updateDockerMap();
-        if (containerList.isEmpty()) {
-            initializeDockerContainer();
-        }
+
         Set<DockerContainer> dockerContainers = dockerMap.keySet();
         StringBuilder containers = new StringBuilder("[");
         for (DockerContainer container : dockerContainers) {
@@ -189,102 +185,105 @@ public class MysqlDatabaseController implements DatabaseController {
         return virtualMachineList;
     }
 
-    private void initializeDockerImages() {
-        for (int c = 0; c < D; c++) {
-            DockerImage dockerImage = parseByAppId("app" + c);
-//            entityManager.getEntityManager().persist(dockerImage);
-            imageList.add(dockerImage);
-        }
+    /**
+     * initializes the available Docker Images and their configurations
+     */
+    private void initializeDockerImagesAndContainers() {
+        DockerImage app0 = parseByAppId("app" + 0);
+        imageList.add(app0);
+        DockerImage app1 = parseByAppId("app" + 1);
+        imageList.add(app1);
+        DockerImage app2 = parseByAppId("app" + 2);
+        imageList.add(app2);
+        DockerImage mysqlApp = parseByAppId("mysql");
+        imageList.add(mysqlApp);
+
+        //store first because it will be a sibling...
+        List<DockerContainer> mysqlConfigurations = getConfigurations(mysqlApp, null, DockerConfiguration.MICRO_CORE);
+        dockerMap.put(new DockerContainer(mysqlApp, DockerConfiguration.MICRO_CORE), mysqlConfigurations);
+
+        dockerMap.put(new DockerContainer(app0, DockerConfiguration.MICRO_CORE),
+                getConfigurations(app0, null, DockerConfiguration.SINGLE_CORE, DockerConfiguration.DUAL_CORE, DockerConfiguration.QUAD_CORE));
+        dockerMap.put(new DockerContainer(app1, DockerConfiguration.MICRO_CORE),
+                getConfigurations(app1, null, DockerConfiguration.SINGLE_CORE, DockerConfiguration.DUAL_CORE, DockerConfiguration.QUAD_CORE));
+
+        //app 2 has a sibling
+        DockerContainer key = new DockerContainer(app2, DockerConfiguration.MICRO_CORE);
+        DockerContainer sibling = mysqlConfigurations.get(0);
+        key.setSibling(sibling);
+        dockerMap.put(key,
+                getConfigurations(app2, sibling, DockerConfiguration.MICRO_CORE, DockerConfiguration.SINGLE_CORE, DockerConfiguration.DUAL_CORE, DockerConfiguration.QUAD_CORE));
+
     }
 
-    public static DockerImage parseByImageName(String imageFullName) {
+    public static DockerImage parseByAppId(String appId) {
+        if (appId.contains("app0")) {
+            return parseByImageName(appId, "bonomat");
+        }
+        if (appId.contains("app1")) {
+            return parseByImageName(appId, "kaihofstetter");
+        }
+        if (appId.contains("app2")) {
+            return parseByImageName(appId, "wordpress");
+        }
+        if (appId.contains("mysql")) {
+            return parseByImageName(appId, "mysql");
+        }
+        if (appId.contains("app4")) {
+            return parseByImageName(appId, "gjong");
+        }
+        return parseByImageName(appId, "bonomat");
+    }
+
+
+    public static DockerImage parseByImageName(String appID, String imageFullName) {
         if (imageFullName.contains("bonomat")) {
-            DockerImage bonomat = new DockerImage("app" + 0, "bonomat/nodejs-hello-world", 8080, 3000, null);
+            DockerImage bonomat = new DockerImage(appID, "bonomat/nodejs-hello-world", 8080, 3000, null);
             return bonomat;
         }
         if (imageFullName.contains("kaihofstetter")) {
-            DockerImage kaihofstetter = new DockerImage("app" + 1, "gjong/apache-joomla", 8081, 80, null);
+            DockerImage kaihofstetter = new DockerImage(appID, "gjong/apache-joomla", 8081, 80, null);
             return kaihofstetter;
 
         }
         if (imageFullName.contains("wordpress")) {
-            DockerImage wordpress = new DockerImage("app" + 2, "wordpress:4.4", 8082, 80, null);
-            wordpress.setSibl(parseByImageName("mysql"));
+            DockerImage wordpress = new DockerImage(appID, "wordpress:4.4", 8082, 80, null);
+            wordpress.setSibl(parseByImageName(appID, "mysql"));
             return wordpress;
         }
 
         if (imageFullName.contains("gjong")) {
-            DockerImage gjong = new DockerImage("app" + 3, "bonomat/zero-to-wordpress-sqlite", 8083, 80, null);
+            DockerImage gjong = new DockerImage(appID, "bonomat/zero-to-wordpress-sqlite", 8083, 80, null);
             return gjong;
         }
         if (imageFullName.contains("xhoussemx")) {
-            DockerImage xhoussemx = new DockerImage("app" + 4, "bonomat/nodejs-hello-world", 8084, 3000, null);
+            DockerImage xhoussemx = new DockerImage(appID, "bonomat/nodejs-hello-world", 8084, 3000, null);
             return xhoussemx;
         }
 
         if (imageFullName.contains("mysql")) {
-            DockerImage mysql = new DockerImage("mysql", "mysql/mysql-server:5.5", 3306, 3306,
-                    new DockerEnvironmentVariable("MYSQL_ROOT_PASSWORD=password"));
+            DockerImage mysql = new DockerImage(appID, "mysql/mysql-server:5.5", 3306, 3306, new DockerEnvironmentVariable("MYSQL_ROOT_PASSWORD=password"));
             return mysql;
         }
         return null;
     }
 
 
-    public static DockerImage parseByAppId(String appId) {
-        if (appId.contains("app0")) {
-            return parseByImageName("bonomat");
-        }
-        if (appId.contains("app1")) {
-            return parseByImageName("kaihofstetter");
-        }
-        if (appId.contains("app2")) {
-            return parseByImageName("wordpress");
-        }
-        if (appId.contains("app3")) {
-            return parseByImageName("gjong");
-        }
-        if (appId.contains("app4")) {
-            return parseByImageName("xhoussemx");
-        }
-        return parseByImageName("bonomat");
-    }
+    public List<DockerContainer> getConfigurations(DockerImage image, DockerContainer sibling, DockerConfiguration... configurations) {
+        List<DockerContainer> dockerList = new ArrayList<>();
+        for (DockerConfiguration configuration : configurations) {
+            DockerContainer container = new DockerContainer(image, configuration);
+            dockerList.add(container);
 
-    private void initializeDockerContainer() {
-        for (DockerImage dockerImage : imageList) {
-            List<DockerContainer> dockerList = new ArrayList<>();
-            for (int j = 0; j < C; j++) {
-                DockerConfiguration configuration = null;
-                switch (j) {
-                    case 0:
-                        configuration = DockerConfiguration.SINGLE_CORE;
-                        break;
-                    case 1:
-                        configuration = DockerConfiguration.DUAL_CORE;
-                        break;
-                    case 2:
-                        configuration = DockerConfiguration.QUAD_CORE;
-                        break;
-                    case 3:
-                        configuration = DockerConfiguration.OCTA_CORE;
-                        break;
-
-                }
-
-                DockerContainer container = new DockerContainer(dockerImage, configuration);
-
-                if (dockerImage.getSibl() != null) {
-                    DockerContainer siblingSettings = getSiblingSettings(dockerImage.getSibl());
-                    container.setSibling(siblingSettings);
-                    entityManager.getEntityManager().persist(siblingSettings);
-                }
-
-                entityManager.getEntityManager().persist(container);
-                dockerList.add(container);
+            if (sibling != null) {
+                container.setSibling(sibling);
             }
-            dockerMap.put(dockerList.get(0), dockerList);
+
+            entityManager.getEntityManager().persist(container);
         }
+        return dockerList;
     }
+
 
     private DockerContainer getSiblingSettings(DockerImage sibling) {
         DockerContainer container = new DockerContainer();
@@ -385,19 +384,19 @@ public class MysqlDatabaseController implements DatabaseController {
                 V = 1;
                 K = 12;
                 D = 3;
-                C = 4;
+                C = 3;
                 return;
             case "1ALL":
                 V = 1;
                 K = 4;
                 D = 3;
-                C = 4;
+                C = 3;
                 return;
             default:
                 V = 4;
                 K = 4;
                 D = 3;
-                C = 4;
+                C = 3;
                 break;
         }
     }
