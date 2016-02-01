@@ -20,6 +20,7 @@
 #src/main/resources/docker-config/docker-swarm.properties
 #src/main/resources/ha-proxy/ha-proxy.properties
 #src/main/resources/mysql-config/mysql.properties
+src/main/resources/mysql-config/mysql.properties
 
 src/main/resources/cloud-config/cloud-config.properties
 src/main/resources/cloud-config/cloud-config.properties_aws

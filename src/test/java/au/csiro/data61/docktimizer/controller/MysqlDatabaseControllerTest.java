@@ -12,6 +12,7 @@ import org.junit.runners.MethodSorters;
 import java.util.*;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
@@ -36,6 +37,11 @@ public class MysqlDatabaseControllerTest extends AbstractTest {
         }
     }
 
+    /**
+     * "This test is deprecated as the amount of docker conteiners does not depend anymore on C and D
+     * @throws Exception
+     */
+    @Deprecated()
     @Test()
     public void test02_testGetDockerMap() throws Exception {
         Map<DockerContainer, List<DockerContainer>> dockerMap = dbController.getDockerMap();
@@ -47,11 +53,11 @@ public class MysqlDatabaseControllerTest extends AbstractTest {
                 }
             }
         }
-        assertThat(realContainers.size(), is(MysqlDatabaseController.D * MysqlDatabaseController.C));
+        assertThat(realContainers.size(), greaterThanOrEqualTo(MysqlDatabaseController.D * MysqlDatabaseController.C));
         for (DockerContainer dockerContainer : dockerMap.keySet()) {
             List<DockerContainer> containerList = dockerMap.get(dockerContainer);
             if (dockerContainer.getName().contains("app")) {
-                assertThat(containerList.size(), is(MysqlDatabaseController.C));
+                assertThat(containerList.size(), greaterThanOrEqualTo(MysqlDatabaseController.C));
             }
         }
     }
