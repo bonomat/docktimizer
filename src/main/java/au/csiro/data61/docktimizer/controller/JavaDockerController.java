@@ -102,7 +102,9 @@ public class JavaDockerController implements DockerController {
         DefaultDockerClient dockerClient = getDockerClient(virtualMachine);
 
         try {
-            dockerClient.pull(dockerContainer.getDockerImage().getFullName(), new ProgressHandler() {
+            DockerImage dockerImage = dockerContainer.getDockerImage();
+
+            dockerClient.pull(dockerImage.getFullName(), new ProgressHandler() {
                 @Override
                 public void progress(ProgressMessage message) throws DockerException {
                     if (message != null && message.progress() != null) {
@@ -114,15 +116,15 @@ public class JavaDockerController implements DockerController {
 
             final Map<String, List<PortBinding>> portBindings = new HashMap<>();
             List<PortBinding> hostPorts = new ArrayList<>();
-            String externPort = String.valueOf(dockerContainer.getDockerImage().getExternPort());
+            String externPort = String.valueOf(dockerImage.getExternPort());
 
-            String internPort = String.valueOf(dockerContainer.getDockerImage().getInternPort());
+            String internPort = String.valueOf(dockerImage.getInternPort());
             hostPorts.add(PortBinding.of("0.0.0.0", externPort));
             portBindings.put(internPort, hostPorts);
 
             HostConfig hostConfig = null;
             //if a container has a sibling, it needs to be started first
-            if (dockerContainer.getDockerImage().getSibl() != null) {
+            if (dockerImage.getSibl() != null) {
                 DockerContainer sibling = dockerContainer.getSibling();
                 DockerContainer tmp = startDocker(virtualMachine, sibling);
                 hostConfig = HostConfig.builder().portBindings(portBindings)
@@ -139,21 +141,27 @@ public class JavaDockerController implements DockerController {
 
             long memory = (long) dockerContainer.getContainerConfiguration().ram * 1024 * 1024;
 
-            String wp_address = String.format("WP_URL=\"%s:%s\"", virtualMachine.getIp(),  dockerContainer.getDockerImage().getExternPort());
+            String wp_address = String.format("WP_URL=\"%s:%s\"", virtualMachine.getIp(), dockerImage.getExternPort());
 
-            List<DockerEnvironmentVariable> dockerEnvironmentVariables = dockerContainer.getDockerImage().getDockerEnvironmentVariables();
-            String[] vars = new String[dockerEnvironmentVariables.size()+1];
+            List<DockerEnvironmentVariable> dockerEnvironmentVariables = dockerImage.getDockerEnvironmentVariables();
+            String[] vars = new String[dockerEnvironmentVariables.size() + 1];
             vars[dockerEnvironmentVariables.size()] = wp_address;
 
             for (int i = 0; i < dockerEnvironmentVariables.size(); i++) {
                 DockerEnvironmentVariable dockerEnvironmentVariable = dockerEnvironmentVariables.get(i);
-                vars[i] = dockerEnvironmentVariable.getFieldAndValue();
+
+                String fieldAndValue = dockerEnvironmentVariable.getFieldAndValue();
+
+                if (fieldAndValue.contains("WORDPRESS_HOST_ADDRESS=%s")) {
+                    fieldAndValue = String.format(fieldAndValue, "http://" + virtualMachine.getIp() + ":8082"); //WARNING... at the moment this has to be hardcoded...
+                }
+                vars[i] = fieldAndValue;
             }
 
             final ContainerConfig config = ContainerConfig.builder()
-                    .image(dockerContainer.getDockerImage().getFullName())
+                    .image(dockerImage.getFullName())
                     .cpuShares(cpuShares)
-                    .exposedPorts(String.valueOf(dockerContainer.getDockerImage().getInternPort()))
+                    .exposedPorts(String.valueOf(dockerImage.getInternPort()))
                     .memory(memory).hostConfig(hostConfig)
                     .env(vars)
                     .build();
@@ -215,8 +223,12 @@ public class JavaDockerController implements DockerController {
                 return true;
             }
             dockerClient.stopContainer(containerID, 30);
-
             dockerClient.removeContainer(containerID);
+
+            if (dockerContainer.getSibling() != null) {
+                stopDocker(virtualMachine, dockerContainer.getSibling());
+            }
+
         } catch (Exception e) {
             throw new CouldNotStopDockerException(e);
         }
