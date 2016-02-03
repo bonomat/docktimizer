@@ -247,8 +247,8 @@ public class MysqlDatabaseController implements DatabaseController {
 
         }
         if (imageFullName.contains("wordpress")) {
-            DockerImage wordpress = new DockerImage(appID, "wordpress:4.4", 8082, 80, null);
-            wordpress.setSibl(parseByImageName(appID, "mysql"));
+            DockerImage wordpress = new DockerImage(appID, "bonomat/wordpress-server", 8082, 80, null);
+            wordpress.setSibl(parseByImageName("mysql", "mysql"));
             return wordpress;
         }
 
@@ -262,7 +262,8 @@ public class MysqlDatabaseController implements DatabaseController {
         }
 
         if (imageFullName.contains("mysql")) {
-            DockerImage mysql = new DockerImage(appID, "mysql/mysql-server:5.5", 3306, 3306, new DockerEnvironmentVariable("MYSQL_ROOT_PASSWORD=password"));
+            DockerImage mysql = new DockerImage(appID, "bonomat/wordpress-mysql-server", 3306, 3306,
+                    new DockerEnvironmentVariable("MYSQL_ROOT_PASSWORD=password"), new DockerEnvironmentVariable("WORDPRESS_HOST_ADDRESS=%s"));
             return mysql;
         }
         return null;
