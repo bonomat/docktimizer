@@ -26,7 +26,7 @@ public abstract class AbstractTest {
     public static void setup() {
         ControllerHandler.DEBUG_MODE = true;
         MysqlDatabaseController.BASELINE_TYPE = MysqlDatabaseController.DEFAULT;
-        validVirtualMachine = new VirtualMachine("Manager", VMType.M1_LARGE, 9, "128.130.172.226"); //replace this IP if you really want to run IT tests
+        validVirtualMachine = new VirtualMachine("Manager", VMType.M1_LARGE, 9, "locahost"); //replace this IP if you really want to run IT tests
         invalidVirtualMachine = new VirtualMachine("err", VMType.M1_MICRO, 9, "999.999.999.999");
 
         invalidDockerContainer = new DockerContainer(new DockerImage("app1", "invalid/image", 8081, 80, null), DockerConfiguration.MICRO_CORE);
