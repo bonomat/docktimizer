@@ -199,20 +199,20 @@ public class MysqlDatabaseController implements DatabaseController {
         imageList.add(mysqlApp);
 
         //store first because it will be a sibling...
-        List<DockerContainer> mysqlConfigurations = getConfigurations(mysqlApp, null, DockerConfiguration.MICRO_CORE);
-        dockerMap.put(new DockerContainer(mysqlApp, DockerConfiguration.MICRO_CORE), mysqlConfigurations);
+        List<DockerContainer> mysqlConfigurations = getConfigurations(mysqlApp, null, DockerConfiguration.SINGLE_CORE);
+        dockerMap.put(new DockerContainer(mysqlApp, DockerConfiguration.SINGLE_CORE), mysqlConfigurations);
 
-        dockerMap.put(new DockerContainer(app0, DockerConfiguration.MICRO_CORE),
+        dockerMap.put(new DockerContainer(app0, DockerConfiguration.SINGLE_CORE),
                 getConfigurations(app0, null, DockerConfiguration.SINGLE_CORE, DockerConfiguration.DUAL_CORE, DockerConfiguration.QUAD_CORE));
-        dockerMap.put(new DockerContainer(app1, DockerConfiguration.MICRO_CORE),
+        dockerMap.put(new DockerContainer(app1, DockerConfiguration.SINGLE_CORE),
                 getConfigurations(app1, null, DockerConfiguration.SINGLE_CORE, DockerConfiguration.DUAL_CORE, DockerConfiguration.QUAD_CORE));
 
         //app 2 has a sibling
-        DockerContainer key = new DockerContainer(app2, DockerConfiguration.MICRO_CORE);
+        DockerContainer key = new DockerContainer(app2, DockerConfiguration.SINGLE_CORE);
         DockerContainer sibling = mysqlConfigurations.get(0);
         key.setSibling(sibling);
         dockerMap.put(key,
-                getConfigurations(app2, sibling, DockerConfiguration.MICRO_CORE, DockerConfiguration.SINGLE_CORE, DockerConfiguration.DUAL_CORE, DockerConfiguration.QUAD_CORE));
+                getConfigurations(app2, sibling, DockerConfiguration.SINGLE_CORE, DockerConfiguration.SINGLE_CORE, DockerConfiguration.DUAL_CORE, DockerConfiguration.QUAD_CORE));
 
     }
 
@@ -290,7 +290,7 @@ public class MysqlDatabaseController implements DatabaseController {
         DockerContainer container = new DockerContainer();
 
         if (sibling.getAppId().contains("mysql")) {
-            container = new DockerContainer(sibling, DockerConfiguration.MICRO_CORE);
+            container = new DockerContainer(sibling, DockerConfiguration.SINGLE_CORE);
         }
         return container;
     }

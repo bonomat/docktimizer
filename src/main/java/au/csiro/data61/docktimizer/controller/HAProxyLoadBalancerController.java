@@ -23,7 +23,6 @@ import java.util.Properties;
 /**
  * A docker container is provided for this HAProxy Load Balancer.
  * https://registry.hub.docker.com/u/bonomat/haproxy-updater/
- *
  */
 public class HAProxyLoadBalancerController implements LoadBalancerController {
     private static final Logger LOG = (Logger) LoggerFactory.getLogger(HAProxyLoadBalancerController.class);
@@ -49,7 +48,7 @@ public class HAProxyLoadBalancerController implements LoadBalancerController {
         Properties prop = new Properties();
         try {
 
-            String propertyFilePath= System.getenv("LOADBALANCER_PROPERTY_FILE");
+            String propertyFilePath = System.getenv("LOADBALANCER_PROPERTY_FILE");
             if (propertyFilePath != null) {
                 prop.load(new FileInputStream(propertyFilePath));
             } else {
@@ -57,28 +56,39 @@ public class HAProxyLoadBalancerController implements LoadBalancerController {
                         getResourceAsStream("ha-proxy/ha-proxy.properties"));
             }
 
+            String address = System.getenv("HA_PORT_3000_TCP_ADDR");
+            if (address == null || address.isEmpty()) {
+                LOAD_BALANCER_ADDRESS = prop.getProperty("LOAD_BALANCER_ADDRESS", "localhost");
+                if (LOAD_BALANCER_ADDRESS.startsWith("$")) {
+                    LOAD_BALANCER_ADDRESS = System.getenv(LOAD_BALANCER_ADDRESS.replace("$", ""));
+                }
+            } else {
+                LOAD_BALANCER_ADDRESS = address;
+            }
 
-            LOAD_BALANCER_ADDRESS = prop.getProperty("LOAD_BALANCER_ADDRESS", "localhost");
-            if (LOAD_BALANCER_ADDRESS.startsWith("$")) {
-                LOAD_BALANCER_ADDRESS = System.getenv(LOAD_BALANCER_ADDRESS.replace("$",""));
+            String port = System.getenv("HA_PORT_3000_TCP_PORT");
+            if (port == null || port.isEmpty()) {
+                LOAD_BALANCER_PORT = prop.getProperty("LOAD_BALANCER_PORT", "3000");
+                if (LOAD_BALANCER_PORT.startsWith("$")) {
+                    LOAD_BALANCER_PORT = System.getenv(LOAD_BALANCER_PORT.replace("$", ""));
+                }
+            } else {
+                LOAD_BALANCER_PORT = port;
             }
-            LOAD_BALANCER_PORT = prop.getProperty("LOAD_BALANCER_PORT", "3000");
-            if (LOAD_BALANCER_PORT.startsWith("$")) {
-                LOAD_BALANCER_PORT = System.getenv(LOAD_BALANCER_PORT.replace("$",""));
-            }
+
             LOAD_BALANCER_PATH = prop.getProperty("LOAD_BALANCER_PATH", "/api/files");
             LOAD_BALANCER_UPDATE_URL = String.format("http://%s:%s%s", LOAD_BALANCER_ADDRESS, LOAD_BALANCER_PORT,
                     LOAD_BALANCER_PATH);
         } catch (Exception e) {
             LOG.error("\n-------------------------------------------------------" +
                     "\n--------load balancer properties not loaded--------------" +
-                    "\n---------------------------------------------------------" +
                     "\n--- /src/resources/ha-proxy.properties is missing -------" +
                     "\n---------------------------------------------------------");
 
         }
         LOG.info("\n--------------------------------------------------------" +
                 "\n--------load balancer properties loaded------------------" +
+                "\n-----------" + LOAD_BALANCER_UPDATE_URL + "--------------" +
                 "\n---------------------------------------------------------");
     }
 
