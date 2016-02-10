@@ -74,8 +74,18 @@ coreos:
 
         [Service]
         Restart=false
-        ExecStart=/usr/bin/docker run  --name initDocker2 -p 8082:80 --rm  bonomat/zero-to-wordpress-sqlite 
-    - name: example-docker-3-startup.service
+        ExecStart=/usr/bin/docker run  --name initDocker2 -e "MYSQL_ROOT_PASSWORD=password" -e "WORDPRESS_HOST_ADDRESS=http://localhost:8082" --rm bonomat/wordpress-mysql-server
+    - name: example-docker3-startup.service
+      command: start
+      content: |
+        [Unit]
+        Description=Just a docker container
+        After=example-docker2-startup.service
+
+        [Service]
+        Restart=false
+        ExecStart=/usr/bin/docker run  --name initDocker3 --link initDocker2:mysql -p 8082:80 --rm bonomat/wordpress-server
+    - name: example-docker4-startup.service
       command: start
       content: |
         [Unit]
@@ -84,7 +94,7 @@ coreos:
 
         [Service]
         Restart=false
-        ExecStart=/usr/bin/docker run  --name initDocker3 -p 8091:80 --rm  gjong/apache-joomla 
+        ExecStart=/usr/bin/docker run  --name initDocker4 -p 8091:80 --rm  gjong/apache-joomla 
 
 ssh_authorized_keys:  # include one or more SSH public keys
   - "ssh-rsa HERE_GOES_YOUR_PUBLIC_KEY"
