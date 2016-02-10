@@ -2,7 +2,6 @@ package au.csiro.data61.docktimizer;
 
 import au.csiro.data61.docktimizer.controller.ControllerHandler;
 import au.csiro.data61.docktimizer.controller.MysqlDatabaseController;
-import au.csiro.data61.docktimizer.models.VirtualMachine;
 import au.csiro.data61.docktimizer.service.DockerPlacementRESTApi;
 import au.csiro.data61.docktimizer.testClient.DockerPlacementServiceTest;
 import com.sun.jersey.api.container.httpserver.HttpServerFactory;
@@ -15,9 +14,7 @@ import org.slf4j.LoggerFactory;
 import javax.ws.rs.core.UriBuilder;
 import java.io.IOException;
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 import java.util.Scanner;
 
 /**
@@ -52,24 +49,27 @@ public class DockerPlacementServer {
             LOG.info("-----------Enter 'start' to begin -------------");
 
             String input = "";
-            while (!input.equalsIgnoreCase("start")) {
+            while (!input.equalsIgnoreCase("start") && !input.equalsIgnoreCase("stop")) {
                 input = scanner.nextLine();
             }
 
-
-            switch (MysqlDatabaseController.BASELINE_TYPE) {
-                case "1EACH":
-                    controllerHandler.setUpOneForEach();
-                    break;
-                case "1ALL":
-                    controllerHandler.setUpAllOnOne();
-                    break;
-                default:
-                    LOG.info("DEFAULT_MODE"); //chose which evaluation run
+            switch (input) {
+                case "start":
+                    switch (MysqlDatabaseController.BASELINE_TYPE) {
+                        case "1EACH":
+                            controllerHandler.setUpOneForEach();
+                            break;
+                        case "1ALL":
+                            controllerHandler.setUpAllOnOne();
+                            break;
+                        default:
+                            LOG.info("DEFAULT_MODE"); //chose which evaluation run
 //                        controllerHandler.setUpOneForEach();
-                    controllerHandler.setUpAllOnOne();
-                    break;
+                            controllerHandler.setUpAllOnOne();
+                            break;
 
+                    }
+                    break;
             }
 
 
