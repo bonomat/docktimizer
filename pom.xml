@@ -107,6 +107,31 @@
                 <extensions>true</extensions>
             </plugin>
 
+            <plugin>
+                <groupId>com.spotify</groupId>
+                <artifactId>docker-maven-plugin</artifactId>
+                <version>0.4.0</version>
+                <configuration>
+                    <imageName>bonomat/docktermizer</imageName>
+                    <baseImage>java:8</baseImage>
+                    <!--<entryPoint>["java", "-jar", "/${project.build.finalName}.jar"]</entryPoint>-->
+                    <resources>
+                        <resource>
+                            <targetPath>docktermizer</targetPath>
+                            <directory>${project.build.directory}</directory>
+                            <include>${project.build.finalName}.jar</include>
+                        </resource>
+                        <resource>
+                            <targetPath>docktermizer/lib</targetPath>
+                            <directory>${project.build.directory}/lib/</directory>
+                        </resource>
+                    </resources>
+                    <serverId>docker-hub</serverId>
+                    <registryUrl>https://index.docker.io/v1/</registryUrl>
+                </configuration>
+            </plugin>
+
+
         </plugins>
     </build>
 
@@ -166,11 +191,6 @@
             <version>${jclouds.version}</version>
         </dependency>
 
-        <!--<dependency>-->
-        <!--<groupId>org.apache.jclouds.api</groupId>-->
-        <!--<artifactId>ec2</artifactId>-->
-        <!--<version>${jclouds.version}</version>-->
-        <!--</dependency>-->
         <dependency>
             <groupId>org.apache.jclouds.api</groupId>
             <artifactId>s3</artifactId>
@@ -231,23 +251,6 @@
             <version>1.10.31</version>
         </dependency>
 
-        <!-- CPLEX
-        <dependency>
-            <groupId>cplex-so</groupId>
-            <artifactId>cplex-so</artifactId>
-            <version>1.0</version>
-            <scope>system</scope>
-            <type>so</type>
-            <systemPath>${basedir}/lib/natives/libcplex1260.so</systemPath>
-        </dependency>
-
-        <dependency>
-            <groupId>cplex-so</groupId>
-            <artifactId>cplex-jar</artifactId>
-            <version>1.0</version>
-        </dependency>
-        -->
-
         <dependency>
             <groupId>java-ilp-jar</groupId>
             <artifactId>java-ilp-jar</artifactId>
@@ -264,57 +267,6 @@
             <groupId>java-ilp-jar</groupId>
             <artifactId>java-ilp-solver-pack</artifactId>
             <version>1.0</version>
-        </dependency>
-
-        <dependency>
-            <groupId>java-ilp-jar</groupId>
-            <artifactId>java-ilp-jar</artifactId>
-            <version>1.2a</version>
-            <scope>system</scope>
-            <systemPath>${project.basedir}/lib/jar/javailp-1.2a.jar</systemPath>
-        </dependency>
-
-        <dependency>
-            <groupId>java-ilp-jar</groupId>
-            <artifactId>java-ilp-solver</artifactId>
-            <version>1.0</version>
-            <scope>system</scope>
-            <systemPath>${project.basedir}/lib/jar/SCPSolver.jar</systemPath>
-        </dependency>
-
-        <dependency>
-            <groupId>java-ilp-jar</groupId>
-            <artifactId>java-ilp-solver-pack</artifactId>
-            <version>1.0</version>
-            <scope>system</scope>
-            <systemPath>${project.basedir}/lib/jar/LPSOLVESolverPack.jar</systemPath>
-        </dependency>
-
-        <dependency>
-            <groupId>java-ilp-jar</groupId>
-            <artifactId>java-ilp-solver-pack-so-64</artifactId>
-            <version>1.0</version>
-            <scope>system</scope>
-            <type>so</type>
-            <systemPath>${basedir}/lib/natives/liblpsolve55j_x64.so</systemPath>
-        </dependency>
-
-        <dependency>
-            <groupId>java-ilp-jar</groupId>
-            <artifactId>java-ilp-solver-pack-so</artifactId>
-            <version>1.0</version>
-            <scope>system</scope>
-            <type>so</type>
-            <systemPath>${basedir}/lib/natives/liblpsolve55j.so</systemPath>
-        </dependency>
-
-        <dependency>
-            <groupId>java-ilp-jar</groupId>
-            <artifactId>java-ilp-solver-pack-so-55</artifactId>
-            <version>1.0</version>
-            <scope>system</scope>
-            <type>so</type>
-            <systemPath>${basedir}/lib/natives/liblpsolve55.so</systemPath>
         </dependency>
 
         <!-- docker API -->
