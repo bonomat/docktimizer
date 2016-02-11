@@ -7,6 +7,7 @@ import au.csiro.data61.docktimizer.exception.UnsupportedVMNaming;
 import au.csiro.data61.docktimizer.helper.FileLoader;
 import au.csiro.data61.docktimizer.interfaces.CloudController;
 import au.csiro.data61.docktimizer.models.DockerContainer;
+import au.csiro.data61.docktimizer.models.DockerEnvironmentVariable;
 import au.csiro.data61.docktimizer.models.VMType;
 import au.csiro.data61.docktimizer.models.VirtualMachine;
 import com.google.common.base.Predicate;
@@ -187,6 +188,7 @@ public class OpenstackCloudController extends CloudController {
         }
 
         String dockerStartups = generateDockerStartupScripts(virtualMachine);
+
         String nodeSpecificCloudInit = CLOUD_INIT.replace("#{DOCKER-UNITS}", dockerStartups);
 
 
@@ -229,6 +231,7 @@ public class OpenstackCloudController extends CloudController {
         return virtualMachine;
     }
 
+
     private String generateDockerStartupScripts(VirtualMachine virtualMachine) {
         StringBuilder startups = new StringBuilder("");
         double vmCores = virtualMachine.getVmType().cores;
@@ -236,13 +239,32 @@ public class OpenstackCloudController extends CloudController {
         for (DockerContainer deployedContainer : virtualMachine.getDeployedContainers()) {
             double containerCores = deployedContainer.getContainerConfiguration().cores;
             long cpuShares = 1024 / (long) Math.ceil(vmCores / containerCores);
+            String vars = "";
+            String link = "";
+            for (DockerEnvironmentVariable dockerEnvironmentVariable : deployedContainer.getDockerImage().getDockerEnvironmentVariables()) {
+
+                String fieldAndValue = dockerEnvironmentVariable.getFieldAndValue();
+                if (fieldAndValue.contains("WORDPRESS_HOST_ADDRESS=%s")) {
+                    fieldAndValue = String.format(fieldAndValue, "http://$private_ipv4:8082"); //WARNING... at the moment this has to be hardcoded...
+                }
+                vars += String.format("-e %s ", fieldAndValue);
+
+
+            }
+            DockerContainer sibling = deployedContainer.getSibling();
+            if (sibling != null) {
+                link = String.format("-link %s:%s ", sibling.getAppID(), sibling.getAppID());
+            }
+            vars += String.format("-e WP_URL=$private_ipv4:%s ", deployedContainer.getDockerImage().getExternPort());
 
             String replace = CLOUD_INIT_DOCKER_START_TEMPL.replace("#{name}", deployedContainer.getAppID());
-            String runCmd = String.format("/usr/bin/docker run --restart=\"always\" --name %s -p %s:%s --cpu-shares=%s %s",
+            String runCmd = String.format("/usr/bin/docker run --restart=\"always\" --name %s -p %s:%s --cpu-shares=%s %s %s %s",
                     deployedContainer.getDockerImage().getAppId(),
                     deployedContainer.getDockerImage().getExternPort(),
                     deployedContainer.getDockerImage().getInternPort(),
                     cpuShares,
+                    vars,
+                    link,
                     deployedContainer.getDockerImage().getFullName());
 
             replace = replace.replace("#{RUN-CMD}", runCmd);
