@@ -59,11 +59,8 @@ public class OpenstackCloudController extends CloudController {
     private String cloud_identity;
     private String cloud_zone;
     private String cloud_default_image_id;
-    private String vm_user_name;
-    private String vm_private_ssh_key;
     private boolean setupInfoLoaded;
     private Image defaultImage;
-    private String DOCKER_RESIZE_SCRIPT;
     private String CLOUD_INIT;
     private String CLOUD_INIT_DOCKER_START_TEMPL;
     private String cloud_security_group;

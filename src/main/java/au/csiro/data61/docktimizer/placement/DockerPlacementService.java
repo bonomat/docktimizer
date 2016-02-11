@@ -11,10 +11,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.concurrent.RunnableFuture;
 
 /**
  */
-public class DockerPlacementService {
+public class DockerPlacementService implements Runnable {
     private static final Logger LOG = (Logger) LoggerFactory.getLogger(DockerPlacementService.class);
     public static final long SLEEP_TIME = 60 * 1000 * 5;
     private static boolean SETUP = true;
@@ -25,6 +26,7 @@ public class DockerPlacementService {
     private DockerPlacement dockerPlacement;
     private DatabaseController databaseController;
     private ControllerHandler controllerHandler;
+    private boolean running = false;
 
     private DockerPlacementService() {
         initialize();
@@ -51,7 +53,26 @@ public class DockerPlacementService {
         }
     }
 
-    public void computePlacement(long tau_t) {
+
+    @Override
+    public void run() {
+        while (running) {
+            long tau_t = new Date().getTime();
+            databaseController.initializeAndUpdate(tau_t);
+            computePlacement(tau_t);
+            long diff = new Date().getTime() - tau_t;
+            try {
+                long diff1 = 60000 - diff;
+                if (diff1 > 0L) {
+                    Thread.sleep(diff1);
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void computePlacement(long tau_t) {
         LOG.info("Compute Placement");
         Result result = dockerPlacement.solvePlacement(tau_t);
 
@@ -61,8 +82,6 @@ public class DockerPlacementService {
 
         LOG.info("Update Variables");
         updateVariables(result, tau_t);
-
-
     }
 
     private void updateVariables(Result result, long tau_t) {
@@ -186,11 +205,11 @@ public class DockerPlacementService {
         LOG.info("Empty VMs to be started?: " + vmsToBeStarted.size());
 
         //terminating old VMs
-        Collection<List<VirtualMachine>> vmSet = controllerHandler.getVMMap(false).values();
+        Collection<List<VirtualMachine>> vmSet = controllerHandler.getVMMap(true).values();
 
         List<VirtualMachine> virtualMachines = new ArrayList<>();
         for (List<VirtualMachine> virtualMachineList : vmSet) {
-            for (VirtualMachine virtualMachine : virtualMachineList) {
+            for (final VirtualMachine virtualMachine : virtualMachineList) {
                 if (virtualMachine.isRunning()) {
 
                     LOG.info(String.format("VM %s started: %s now: %s To be terminated at %s, difference in seconds: %s ",
@@ -203,7 +222,18 @@ public class DockerPlacementService {
                         LOG.info("VM should be terminated " + virtualMachine.getName() + " VM_ID " + virtualMachine.getId());
                         virtualMachine.setRunning(false);
                         databaseController.update(virtualMachine);
-                        controllerHandler.terminateVM(virtualMachine);
+                        new Thread(new Runnable() {
+                            @Override
+                            public void run() {
+                                try {
+                                    Thread.sleep(10000);
+                                    controllerHandler.terminateVM(virtualMachine);
+                                    LOG.info("VM terminated " + virtualMachine.getName() + " VM_ID " + virtualMachine.getId());
+                                } catch (InterruptedException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        }).start();
                     } else {
                         virtualMachines.add(virtualMachine);
                     }
@@ -278,16 +308,17 @@ public class DockerPlacementService {
 
 
         LOG.info(""
-                        + "\nplanned invocations: \n" + invocationOutput.toString()
-                        + "\nBeta - 1 - values\n" + beta1Values.toString()
-                        + "\nobjective: " + objective
-                        + "\nY - 1 - values\n" + y1Values.toString()
-                        + "\nX - 1 - values\n" + x1Values.toString()
+                + "\nplanned invocations: \n" + invocationOutput.toString()
+                + "\nBeta - 1 - values\n" + beta1Values.toString()
+                + "\nobjective: " + objective
+                + "\nY - 1 - values\n" + y1Values.toString()
+                + "\nX - 1 - values\n" + x1Values.toString()
         );
 
     }
 
     public void close() {
+        running = false;
         LOG.info("shutting down all VMs");
         Collection<List<VirtualMachine>> vmSet = controllerHandler.getVMMap(true).values();
 
@@ -298,5 +329,13 @@ public class DockerPlacementService {
                 }
             }
         }
+    }
+
+    public boolean isRunning() {
+        return running;
+    }
+
+    public void setRunning(boolean running) {
+        this.running = running;
     }
 }
