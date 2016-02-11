@@ -132,9 +132,18 @@ public class MysqlDatabaseController implements DatabaseController {
         LOG.info("Loading planned invocations ...");
         long startTime = tau_t - 60 * 1000;
         long endTime = tau_t + DockerPlacementService.SLEEP_TIME;
-        List<PlannedInvocation> plannedInvocations = entityManager.getEntityManager().createQuery("FROM PlannedInvocation AS pi WHERE pi.done=:done")
-                .setParameter("done", false)
-                .getResultList();
+
+        List<PlannedInvocation> plannedInvocations = new ArrayList<>();
+        for (DockerContainer dockerContainer : dockerContainers) {
+            List resultList = entityManager.getEntityManager().createQuery("FROM PlannedInvocation AS pi WHERE pi.appId = :appId ORDER BY pi.id desc")
+                    .setParameter("appId", dockerContainer.getAppID())
+                    .setMaxResults(1).getResultList();
+            plannedInvocations.addAll(resultList);
+        }
+
+//        List<PlannedInvocation> plannedInvocations = entityManager.getEntityManager().createQuery("FROM PlannedInvocation AS pi WHERE pi.done=:done")
+//                .setParameter("done", false)
+//                .getResultList();
 
         LOG.info("Found planned invocations ..." + plannedInvocations.size());
         for (PlannedInvocation plannedInvocation : plannedInvocations) {
@@ -222,7 +231,7 @@ public class MysqlDatabaseController implements DatabaseController {
         DockerContainer sibling = mysqlConfigurations.get(0);
         key.setSibling(sibling);
         dockerMap.put(key,
-                getConfigurations(app2, sibling, DockerConfiguration.SINGLE_CORE, DockerConfiguration.SINGLE_CORE, DockerConfiguration.DUAL_CORE, DockerConfiguration.QUAD_CORE));
+                getConfigurations(app2, sibling, DockerConfiguration.SINGLE_CORE, DockerConfiguration.DUAL_CORE, DockerConfiguration.QUAD_CORE));
 
     }
 
