@@ -386,8 +386,16 @@ public class ControllerHandler {
                             if (counter == 3) {
                                 break;
                             }
+                            if (!dockerContainer.getAppID().startsWith("app")) {
+                                continue;
+                            }
                             counter++;
+                            DockerContainer sibling = dockerContainer.getSibling();
+                            if (sibling != null) {
+                                virtualMachine.addDockerContainer(sibling);
+                            }
                             virtualMachine.addDockerContainer(dockerContainer);
+
                         }
                         tmpList.add(virtualMachine);
 
@@ -399,6 +407,7 @@ public class ControllerHandler {
                         SETUP = false;
                         ensureDockerContainerAreDeployed(tmpList);
                         updateHAProxyConfiguration(tmpList);
+                        LOG.info("------ VM setup complete -----");
                         break;
                     }
             }
