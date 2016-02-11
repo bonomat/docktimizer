@@ -1,7 +1,6 @@
 package au.csiro.data61.docktimizer.placement;
 
 import au.csiro.data61.docktimizer.controller.ControllerHandler;
-import au.csiro.data61.docktimizer.controller.MysqlDatabaseController;
 import au.csiro.data61.docktimizer.helper.MILPSolver;
 import au.csiro.data61.docktimizer.models.*;
 import net.sf.javailp.*;
@@ -85,9 +84,8 @@ public class DockerPlacement {
         addConstraint_2(problem);
         addConstraint_3(problem);
         addConstraint_4(problem);
-        addConstraint_4_2(problem);
-        addConstraint_5(problem);
         addConstraint_6(problem);
+        addConstraint_5(problem);
         addConstraint_7(problem);
         addConstraint_8(problem);
         addConstraint_9(problem);
@@ -100,6 +98,7 @@ public class DockerPlacement {
         addConstraint_16(problem);
         addConstraint_17(problem);
         addConstraint_18(problem);
+        addConstraint_19(problem);
 
         //TOIT Extension
         addConstrainOneBoth(problem);
@@ -319,26 +318,6 @@ public class DockerPlacement {
     }
 
     /**
-     * @param problem adds the subconstraint to compute the max allowed overload per container type
-     */
-    private void addConstraint_4_2(Problem problem) {
-        for (DockerContainer dockerContainerType : dockerMap.keySet()) {
-            Linear linear = new Linear();
-            for (DockerContainer dockerContainer : dockerMap.get(dockerContainerType)) {
-                for (VMType vmType : vmMap.keySet()) {
-                    for (VirtualMachine vm : vmMap.get(vmType)) {
-                        String decisionVariableX = getDecisionVariableX(dockerContainer, vm);
-                        double tenPercentOfPossibleInvocations = dockerContainer.getAmountOfPossibleInvocations() * 0.1;
-                        linear.add(tenPercentOfPossibleInvocations, decisionVariableX);
-                    }
-                }
-            }
-            linear.add(-1, getHelperVariableO(dockerContainerType));
-            problem.add(linear, "=", 0);
-        }
-    }
-
-    /**
      * @param problem adds the constraint that on each VM only 1 specific container of a
      *                container type should be placed at the same time the most, but can be 0 aswell
      */
@@ -360,10 +339,30 @@ public class DockerPlacement {
     }
 
     /**
+     * @param problem adds the sub-constraint to compute the max allowed overload per container type
+     */
+    private void addConstraint_6(Problem problem) {
+        for (DockerContainer dockerContainerType : dockerMap.keySet()) {
+            Linear linear = new Linear();
+            for (DockerContainer dockerContainer : dockerMap.get(dockerContainerType)) {
+                for (VMType vmType : vmMap.keySet()) {
+                    for (VirtualMachine vm : vmMap.get(vmType)) {
+                        String decisionVariableX = getDecisionVariableX(dockerContainer, vm);
+                        double tenPercentOfPossibleInvocations = dockerContainer.getAmountOfPossibleInvocations() * 0.1;
+                        linear.add(tenPercentOfPossibleInvocations, decisionVariableX);
+                    }
+                }
+            }
+            linear.add(-1, getHelperVariableO(dockerContainerType));
+            problem.add(linear, "=", 0);
+        }
+    }
+
+    /**
      * @param problem adds constraint to sum up the amount of VMs to be leased
      */
 
-    private void addConstraint_6(Problem problem) {
+    private void addConstraint_7(Problem problem) {
         for (VMType vmType : vmMap.keySet()) {
             Linear linear = new Linear();
             String gamma = getGammaVariable(vmType);
@@ -380,7 +379,7 @@ public class DockerPlacement {
     /**
      * @param problem adds constraint to g >= y
      */
-    private void addConstraint_7(Problem problem) {
+    private void addConstraint_8(Problem problem) {
         for (VMType vmType : vmMap.keySet()) {
             for (VirtualMachine vm : vmMap.get(vmType)) {
                 String helperVariableG = getHelperVariableG(vm);
@@ -396,7 +395,7 @@ public class DockerPlacement {
     /**
      * @param problem adds constraint to g >= betta
      */
-    private void addConstraint_8(Problem problem) {
+    private void addConstraint_9(Problem problem) {
         for (VMType vmType : vmMap.keySet()) {
             for (VirtualMachine vm : vmMap.get(vmType)) {
                 String helperVariableG = getHelperVariableG(vm);
@@ -407,7 +406,11 @@ public class DockerPlacement {
         }
     }
 
-    private void addConstraint_9(Problem problem) {
+    /**
+     *
+     * @param problem adds constraint that g is either 1 if the VM is running or 0 if not
+     */
+    private void addConstraint_10(Problem problem) {
         for (VMType vmType : vmMap.keySet()) {
             for (VirtualMachine vm : vmMap.get(vmType)) {
                 String helperVariableG = getHelperVariableG(vm);
@@ -420,7 +423,11 @@ public class DockerPlacement {
         }
     }
 
-    private void addConstraint_10(Problem problem) {
+    /**
+     *
+     * @param problem adds the constraint to ensure that enough resources are leased overall
+     */
+    private void addConstraint_11(Problem problem) {
         for (DockerContainer dockerContainerType : dockerMap.keySet()) {
 
             for (VMType vmType : vmMap.keySet()) {
@@ -443,7 +450,7 @@ public class DockerPlacement {
      * @param problem adds the constraint which computes the remaining leasing duration
      *                needs to be long enough, or the vm needs to be leased another round
      */
-    private void addConstraint_11(Problem problem) {
+    private void addConstraint_12(Problem problem) {
         for (VMType vmType : vmMap.keySet()) {
             for (VirtualMachine vm : vmMap.get(vmType)) {
                 for (DockerContainer dockerContainerType : dockerMap.keySet()) {
@@ -475,7 +482,7 @@ public class DockerPlacement {
      * @param problem to add the variable
      */
 
-    private void addConstraint_12(Problem problem) {
+    private void addConstraint_13(Problem problem) {
         for (VMType vmType : vmMap.keySet()) {
             for (VirtualMachine vm : vmMap.get(vmType)) {
                 for (DockerContainer dockerContainerType : dockerMap.keySet()) {
@@ -497,7 +504,7 @@ public class DockerPlacement {
      *
      * @param problem to add the variable
      */
-    private void addConstraint_13(Problem problem) {
+    private void addConstraint_14(Problem problem) {
         for (VMType vmType : vmMap.keySet()) {
             for (VirtualMachine vm : vmMap.get(vmType)) {
                 String variableY = getDecisionVariableY(vm);
@@ -515,7 +522,7 @@ public class DockerPlacement {
      *
      * @param problem to add the variable
      */
-    private void addConstraint_14(Problem problem) {
+    private void addConstraint_15(Problem problem) {
         for (VMType vmType : vmMap.keySet()) {
             for (VirtualMachine vm : vmMap.get(vmType)) {
                 String variableY = getHelperVariableG(vm);
@@ -533,7 +540,7 @@ public class DockerPlacement {
      *
      * @param problem to add the variable
      */
-    private void addConstraint_15(Problem problem) {
+    private void addConstraint_16(Problem problem) {
         // this is just a placeholder, the real value will be used directly
     }
 
@@ -542,7 +549,7 @@ public class DockerPlacement {
      *                amount of incoming requests for a particular container
      *                at a certain point of time
      */
-    private void addConstraint_16(Problem problem) {
+    private void addConstraint_17(Problem problem) {
 
         for (DockerContainer dockerContainerType : dockerMap.keySet()) {
             int i_d = invocationMap.get(dockerContainerType);
@@ -557,7 +564,7 @@ public class DockerPlacement {
     /**
      * @param problem to add the variable for how many invocations are possible at a certain docker container
      */
-    private void addConstraint_17(Problem problem) {
+    private void addConstraint_18(Problem problem) {
         //this is just a placeholder
     }
 
@@ -567,7 +574,7 @@ public class DockerPlacement {
      * @param problem to add the variable
      */
 
-    private void addConstraint_18(Problem problem) {
+    private void addConstraint_19(Problem problem) {
         for (DockerContainer dockerContainerType : dockerMap.keySet()) {
             String variableX = getHelperVariableO(dockerContainerType);
             Linear linear = new Linear();
