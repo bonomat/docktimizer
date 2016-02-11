@@ -44,9 +44,12 @@ public class DockerPlacementRESTApi {
     @Path("/api")
     @Produces(MediaType.TEXT_PLAIN)
     public Response api() {
+        if (!dockerPlacementService.isRunning()) {
+            dockerPlacementService.setRunning(true);
+            Thread thread = new Thread(dockerPlacementService);
+            thread.start();
+        }
 
-
-        dockerPlacementService.computePlacement(new Date().getTime());
         String result = "Computing Placement";
         return Response.status(200).entity(result).build();
     }
@@ -67,6 +70,21 @@ public class DockerPlacementRESTApi {
     }
 
     @GET
+    @Path("/stop")
+    @Produces(MediaType.TEXT_PLAIN)
+    public Response stop() {
+
+        try {
+            dockerPlacementService.setRunning(false);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        String result = "Closing Up";
+        return Response.status(200).entity(result).build();
+    }
+
+    @GET
     @Path("/state")
     @Produces(MediaType.APPLICATION_JSON)
     public SystemState systemState() {
@@ -74,7 +92,7 @@ public class DockerPlacementRESTApi {
 
         SystemState systemstate = new SystemState();
         systemstate.setTimestamp(new Date().getTime());
-        SortedMap<VMType, List<VirtualMachine>> vmMap = database.getVmMap(true);
+        SortedMap<VMType, List<VirtualMachine>> vmMap = database.getVmMap(false);
         List<VirtualMachine> machines = new ArrayList<>();
         for (VMType vmType : vmMap.keySet()) {
             for (VirtualMachine virtualMachine : vmMap.get(vmType)) {
