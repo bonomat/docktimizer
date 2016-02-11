@@ -8,6 +8,7 @@ import au.csiro.data61.docktimizer.placement.DockerPlacementService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.persistence.Query;
 import java.util.*;
 
 /**
@@ -106,6 +107,15 @@ public class MysqlDatabaseController implements DatabaseController {
         LOG.info("Loading docker container types...");
 
         Set<DockerContainer> dockerContainers = dockerMap.keySet();
+        if (dockerContainers.isEmpty()) {
+            for (DockerImage dockerImage : tmpImageList) {
+                Query query = entityManager.getEntityManager().createQuery("From DockerContainer dc where dc.dockerImage.appId=:appID");
+                query.setParameter("appID", dockerImage.getAppId());
+                List<DockerContainer> resultList = query.getResultList();
+                dockerMap.put(resultList.get(0), resultList);
+            }
+        }
+
         StringBuilder containers = new StringBuilder("[");
         for (DockerContainer container : dockerContainers) {
             List<DockerContainer> dockerContainers1 = dockerMap.get(container);
