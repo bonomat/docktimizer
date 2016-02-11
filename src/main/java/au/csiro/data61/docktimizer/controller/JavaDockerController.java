@@ -196,7 +196,7 @@ public class JavaDockerController implements DockerController {
 
         } catch (Exception e) {
             //ignore
-            LOG.info("could not start container " + virtualMachine.getName() + " message:  " + e.getMessage());
+            LOG.error("could not start container " + virtualMachine.getName() + " message:  " + e.getMessage());
             return null;
         }
 
